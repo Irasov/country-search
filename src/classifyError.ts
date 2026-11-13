@@ -1,3 +1,5 @@
+import { HttpError } from './errors.js';
+
 export type Failure =
   | { kind: 'cancelled' }
   | { kind: 'timeout' }
@@ -5,6 +7,16 @@ export type Failure =
   | { kind: 'network' }
   | { kind: 'unknown' };
 
-export function classifyError(_error: unknown): Failure {
-  throw new Error('classifyError: not implemented');
+const hasName = (error: unknown, name: string): boolean =>
+  typeof error === 'object' &&
+  error !== null &&
+  'name' in error &&
+  error.name === name;
+
+export function classifyError(error: unknown): Failure {
+  if (error instanceof HttpError) return { kind: 'http', status: error.status };
+  if (hasName(error, 'AbortError')) return { kind: 'cancelled' };
+  if (hasName(error, 'TimeoutError')) return { kind: 'timeout' };
+  if (error instanceof TypeError) return { kind: 'network' };
+  return { kind: 'unknown' };
 }
